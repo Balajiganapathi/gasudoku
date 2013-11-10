@@ -1,11 +1,11 @@
 seed = 200
-solved: 1
-restarts = 2
-gen = 57036
-time = 21730
+solved: 0
+restarts = 20
+gen = 420000
+time = 178350
 size = 1000
 retain = 900
-mutation_rate = 0.100000
+mutation_rate = 0.050000
 single_crossover_rate = 0.900000
 fitter_parent = 0.990000
 

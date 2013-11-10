@@ -1,3 +1,5 @@
+#! /bin/bash
+
 function INT_cleanup()
 {
     kill `jobs -pr`    
@@ -6,7 +8,7 @@ function INT_cleanup()
 
 trap INT_cleanup INT
 
-PROJDIR=/home/bro3886/devel/gasudoku
+PROJDIR=$PWD	# Set to the absolute path of the gasudoku directory.
 BIN=$PROJDIR/bin/sudoku
 CONF=.gaconfig
 
@@ -34,10 +36,12 @@ do
 				OUTDIR=$TESTDIR/$s/$m/$c/$p
 				mkdir -p $OUTDIR
 				cd $OUTDIR
+
 				sed 's/\(mutation_rate = \).*/\1'$m'/' $PROJDIR/$CONF > $CONF
 				sed -i 's/\(single_crossover_rate = \).*/\1'$c'/' $CONF
 				sed -i 's/\(pop_retain = \).*/\1'$p'/' $CONF
 				sed -i 's/\(seed = \).*/\1'$s'/' $CONF
+				
 				for puzzle in $TESTDIR/*.txt
 				do
 					OUT=`basename $puzzle`
@@ -54,11 +58,11 @@ do
 
 					echo "seed = $s" >$OUT
 					$BIN < $puzzle >solution_$OUT 2>>$OUT &
-				done
-			done
-		done
-	done
-done
+				done # Difficulty loop
+			done # Population retain rate
+		done # Crossover rate
+	done # Mutation rate
+done # Seed value
 
 wait
 

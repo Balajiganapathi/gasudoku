@@ -1,6 +1,6 @@
 function INT_cleanup()
 {
-    kill `jobs -p`    
+    kill `jobs -pr`    
     exit
 }
 
@@ -18,7 +18,7 @@ POP_RETAIN="900 950 990"
 
 SEEDS="100 200"
 
-MAX_JOBS=7
+MAX_JOBS=10
 N_JOBS=0
 
 TEST_COUNT=0
@@ -42,15 +42,15 @@ do
 				do
 					OUT=`basename $puzzle`
 					echo seed = $s >$OUT
-					N_JOBS=`jobs -p 2>/dev/null | wc -l`
+					N_JOBS=`jobs -pr | wc -l`
 					while [[ $N_JOBS > $MAX_JOBS ]]
 					do
 						sleep 10
-						N_JOBS=`jobs -p 2>/dev/null | wc -l`
+						N_JOBS=`jobs -pr | wc -l`
 					done
 					TEST_COUNT=$(( TEST_COUNT + 1))
 					echo -e $TEST_COUNT "\t" $PWD
-					$BIN < $puzzle >solution.txt 2>>$OUT &
+					$BIN < $puzzle >solution_$puzzle 2>>$OUT &
 				done
 			done
 		done
@@ -58,5 +58,4 @@ do
 done
 
 wait
-
 

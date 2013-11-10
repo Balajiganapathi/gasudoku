@@ -34,10 +34,10 @@ do
 				OUTDIR=$TESTDIR/$s/$m/$c/$p
 				mkdir -p $OUTDIR
 				cd $OUTDIR
-				sed 's/\(mutation_rate = \).*/'$m'/' $PROJDIR/$CONF > $CONF
-				sed -i 's/\(single_crossover_rate = \).*/'$c'/' $CONF
-				sed -i 's/\(pop_retain = \).*/'$p'/' $CONF
-				sed -i 's/\(seed = \).*/'$s'/' $CONF
+				sed 's/\(mutation_rate = \).*/\1'$m'/' $PROJDIR/$CONF > $CONF
+				sed -i 's/\(single_crossover_rate = \).*/\1'$c'/' $CONF
+				sed -i 's/\(pop_retain = \).*/\1'$p'/' $CONF
+				sed -i 's/\(seed = \).*/\1'$s'/' $CONF
 				for puzzle in $TESTDIR/*.txt
 				do
 					OUT=`basename $puzzle`

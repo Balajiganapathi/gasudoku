@@ -18,7 +18,7 @@ POP_RETAIN="900 950 990"
 
 SEEDS="100 200"
 
-MAX_JOBS=10
+MAX_JOBS=7
 N_JOBS=0
 
 TEST_COUNT=0
@@ -41,15 +41,18 @@ do
 				for puzzle in $TESTDIR/*.txt
 				do
 					OUT=`basename $puzzle`
-					echo seed = $s >$OUT
+					
 					N_JOBS=`jobs -pr | wc -l`
-					while [[ $N_JOBS > $MAX_JOBS ]]
+					while [[ $N_JOBS -gt $MAX_JOBS ]]
 					do
 						sleep 10
 						N_JOBS=`jobs -pr | wc -l`
 					done
+
 					TEST_COUNT=$(( TEST_COUNT + 1))
 					echo -e $TEST_COUNT "\t" $PWD
+
+					echo "seed = $s" >$OUT
 					$BIN < $puzzle >solution_$OUT 2>>$OUT &
 				done
 			done

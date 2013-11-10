@@ -50,7 +50,7 @@ do
 					done
 					TEST_COUNT=$(( TEST_COUNT + 1))
 					echo -e $TEST_COUNT "\t" $PWD
-					$BIN < $puzzle >solution_$puzzle 2>>$OUT &
+					$BIN < $puzzle >solution_$OUT 2>>$OUT &
 				done
 			done
 		done

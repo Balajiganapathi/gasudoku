@@ -1,4 +1,3 @@
-//Coder: Balajiganapathi
 #define TRACE
 #define DEBUG
 
@@ -83,7 +82,6 @@ double mutation_rate, single_crossover_rate, fitter_parent;
 Genome *pop;
 int con_count[27][10], gen_limit, restart_limit;
 int con_mask[27];
-int pos[81];
 
 bool fire(double p) {
     return rand() <= p * RAND_MAX;
@@ -94,15 +92,45 @@ int randrange(int a, int b) {
     return rand() % (b - a + 1) + a;
 }
 
-int getRandom(int x) {
-    int c = 0, nc = nvalid[x] - 1, mask = (con_mask[row(x)] | con_mask[col(x) + 9] | con_mask[box(x) + 18]);
+int rearrange(int x, int mask) {
+    int c = 0, nc = nvalid[x] - 1;
+
     for(int d = 1; d <= 9; ++d) {
         if((valid[x] & (1 << d)) > 0) {
-            if((mask & (1 << d)) == 0) valid_nums[x][c++] = d;
-            else valid_nums[x][nc--] = d;
+            if((mask & (1 << d)) == 0) {
+                valid_nums[x][c++] = d;
+            } else {
+                valid_nums[x][nc--] = d;
+            }
         }
     }
-    if(c == 0) c = nvalid[x];
+
+    return c;
+}
+
+int getRandom(int x) {
+    int c;
+    int masks[] = {
+        (con_mask[row(x)] | con_mask[col(x) + 9] | con_mask[box(x) + 18]),
+        (con_mask[row(x)] | con_mask[box(x) + 18]),
+        (con_mask[row(x)] | con_mask[col(x) + 9]),
+        (con_mask[row(x)])};
+    
+    fr(i, 4) {
+        c = rearrange(x, masks[i]);
+        if(c) break;
+    }
+    if(c == 0) {
+        c = nvalid[x];
+        /*
+        int d;
+        do {
+            d = randrange(1, 9);
+        } while(con_mask[row(x)] & (1 << d));
+        return d;
+        */
+    }
+        
     return valid_nums[x][randrange(0, c - 1)];
 }
 
@@ -119,20 +147,30 @@ class Genome {
         score = -1;
     }
 
+    bool row_consistent() {
+        fr(i, 81) fr(j, 81) if(i != j && row(i) == row(j) && num[i] == num[j]) return false;
+        return true;
+    }
+
     void single_crossover(Genome g) {
-        int x = randrange(1, 79);
+        int x = randrange(1, 8) * 9;
         fr(i, x) swap(num[i], g.num[i]);
         score = g.score = -1;
     }
 
     void mutate() {
+        int from;
         ini(con_mask, 0);
-        for(int j = 0; j < 81; ++j) {
-            int i = pos[j];
-            if(fire(mutation_rate)) {
-                num[i] = getRandom(i);
-                score = -1;
+        for(int i = 0; i < 81; ++i) {
+            if(col(i) == 0) {
+                from = oo;
+                if(fire(mutation_rate)) {
+                    from = i + randrange(0, 8);
+                    score = -1;
+                }
             }
+            if(i >= from) num[i] = getRandom(i);
+
             con_mask[row(i)] |= (1 << num[i]);
             con_mask[col(i) + 9] |= (1 << num[i]);
             con_mask[box(i) + 18] |= (1 << num[i]);
@@ -141,9 +179,9 @@ class Genome {
 
     void fillrandom() {
         ini(con_mask, 0);
-        for(int j = 0; j < 81; ++j) {
-            int i = pos[j];
+        for(int i = 0; i < 81; ++i) {
             num[i] = getRandom(i);
+            assert(num[i] >= 0);
             con_mask[row(i)] |= (1 << num[i]);
             con_mask[col(i) + 9] |= (1 << num[i]);
             con_mask[box(i) + 18] |= (1 << num[i]);
@@ -155,8 +193,8 @@ class Genome {
         if(score != -1) return score;
         score = 0;
         ini(con_count, 0);
-        for(int j = 0; j < 81; ++j) {
-            int i = pos[j];
+        for(int i = 0; i < 81; ++i) {
+            assert(num[i] >= 1 && num[i] < 10);
             score += con_count[row(i)][num[i]];
             con_count[row(i)][num[i]] += 1;
             score += con_count[col(i) + 9][num[i]];
@@ -227,30 +265,6 @@ void initParams() {
     assert(fitter_parent >= 0 && fitter_parent <= 1);
 }
 
-void gen_pos() {
-    //if(randrange(0, 10)) return;
-
-    int order[9], c = 0;
-    for(int i = 0; i < 9; ++i) order[i] = i;
-    random_shuffle(order, order + 9);
-    int type = randrange(0, 0);
-    if(type == 0) {
-        for(int i = 0; i < 9; ++i) {
-            for(int x = 0; x < 81; ++x) if(row(x) == order[i]) pos[c++] = x;
-        }
-    } else if(type == 1) {
-        for(int i = 0; i < 9; ++i) {
-            for(int x = 0; x < 81; ++x) if(col(x) == order[i]) pos[c++] = x;
-        }
-    } else {
-        for(int i = 0; i < 9; ++i) {
-            for(int x = 0; x < 81; ++x) if(box(x) == order[i]) pos[c++] = x;
-        }
-    }
-
-    for(int i = 0; i < 81; ++i) for(int j = 0; j < i; ++j) assert(pos[i] != pos[j]);
-}
-
 void disp_progress() {
     //return;
     if(display_level <= 0) return;
@@ -269,11 +283,10 @@ void arrange_min() {
 }
 
 void initGA() {
-    for(int i = 0; i < 81; ++i) pos[i] = i;
-    gen_pos();
     pop = new Genome[pop_len];
     for(int i = 0; i < pop_len; ++i) {
         pop[i].fillrandom();
+        //assert(pop[i].row_consistent());
         if(pop[i].get_score() == 0) {
             swap(pop[i], pop[0]);
             return;
@@ -306,7 +319,6 @@ void outputStats(int solved) {
 
 
 void nextgen() {
-    gen_pos();
     ++gen;
     for(int i = pop_retain; i < pop_len; i += 2) {
         int a = select(), b = select();
@@ -332,7 +344,7 @@ void nextgen() {
 
 char inp[100];
 void processInput() {
-    int full = (1 << 10) - 1;
+    int full = (1 << 10) - 2;
     fr(i, 81) {
         valid[i] = full;
         nvalid[i] = 0;

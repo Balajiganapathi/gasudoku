@@ -9,27 +9,35 @@ function INT_cleanup()
 trap INT_cleanup INT
 
 PROJDIR=$PWD	# Set to the absolute path of the gasudoku directory.
-BIN=$PROJDIR/bin/sudoku
+BIN=$PROJDIR/bin/sudoku$1
 CONF=.gaconfig
 
-TESTDIR=$PROJDIR/tests
+TESTDIR=$PROJDIR/tests$1
+CASEDIR=$PROJDIR/cases
 
-MUT_RATE="5 10 15"
-CROSS_RATE="0 90 95"
+mkdir -p $TESTDIR
+
+if [[ -x $BIN ]]
+then
+	make `basename $BIN`
+fi
+
+MUT_RATES="5 10 15"
+CROSS_RATES="0 90 95"
 POP_RETAIN="900 950 990"
 
 SEEDS="100 200"
 
-MAX_JOBS=7
+MAX_JOBS=3
 N_JOBS=0
 
 TEST_COUNT=0
 
 for s in $SEEDS
 do
-	for m in $MUT_RATE
+	for m in $MUT_RATES
 	do 
-		for c in $CROSS_RATE
+		for c in $CROSS_RATES
 		do
 			for p in $POP_RETAIN
 			do
@@ -42,7 +50,7 @@ do
 				sed -i 's/\(pop_retain = \).*/\1'$p'/' $CONF
 				sed -i 's/\(seed = \).*/\1'$s'/' $CONF
 				
-				for puzzle in $TESTDIR/*.txt
+				for puzzle in $CASEDIR/*.txt
 				do
 					OUT=`basename $puzzle`
 					

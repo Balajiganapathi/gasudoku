@@ -1,8 +1,8 @@
 seed = 200
 solved: 1
 restarts = 0
-gen = 95
-time = 30
+gen = 27
+time = 0
 size = 1000
 retain = 950
 mutation_rate = 0.100000

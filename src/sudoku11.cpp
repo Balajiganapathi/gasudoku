@@ -1,4 +1,74 @@
-#include "common.h"
+//Coder: Balajiganapathi
+#define TRACE
+#define DEBUG
+
+#include <algorithm>
+#include <bitset>
+#include <deque>
+#include <cassert>
+#include <cctype>
+#include <climits>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <list>
+#include <map>
+#include <numeric>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <utility>
+#include <vector>
+#include <random>
+
+using namespace std;
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef pair<int,int> pi;
+typedef vector<string> vs;
+
+// Basic macros
+#define st          first
+#define se          second
+#define all(x)      (x).begin(), (x).end()
+#define ini(a, v)   memset(a, v, sizeof(a))
+#define re(i,s,n)  	for(int i=s;i<(n);++i)
+#define rep(i,s,n)  for(int i=s;i<=(n);++i)
+#define fr(i,n)     re(i,0,n)
+#define tr(i,x)     for(typeof(x.begin()) i=x.begin();i!=x.end();++i)
+#define pu          push_back
+#define mp          make_pair
+#define sz(x)       (int)(x.size())
+
+const int oo = 2000000009;
+const double eps = 1e-9;
+
+#ifdef TRACE
+    #define trace1(x)                cerr << #x << ": " << x << endl;
+    #define trace2(x, y)             cerr << #x << ": " << x << " | " << #y << ": " << y << endl;
+    #define trace3(x, y, z)          cerr << #x << ": " << x << " | " << #y << ": " << y << " | " << #z << ": " << z << endl;
+    #define trace4(a, b, c, d)       cerr << #a << ": " << a << " | " << #b << ": " << b << " | " << #c << ": " << c << " | " << #d << ": " << d << endl;
+    #define trace5(a, b, c, d, e)    cerr << #a << ": " << a << " | " << #b << ": " << b << " | " << #c << ": " << c << " | " << #d << ": " << d << " | " << #e << ": " << e << endl;
+    #define trace6(a, b, c, d, e, f) cerr << #a << ": " << a << " | " << #b << ": " << b << " | " << #c << ": " << c << " | " << #d << ": " << d << " | " << #e << ": " << e << " | " << #f << ": " << f << endl;
+
+#else
+
+    #define trace1(x)
+    #define trace2(x, y)
+    #define trace3(x, y, z)
+    #define trace4(a, b, c, d)
+    #define trace5(a, b, c, d, e)
+    #define trace6(a, b, c, d, e, f)
+
+#endif
+
 #define row(x) ((x) / 9)
 #define col(x) ((x) % 9)
 #define box(x) (3 * (row(x) / 3 ) + (col(x) / 3))
@@ -14,46 +84,33 @@ double mutation_rate, single_crossover_rate, fitter_parent;
 Genome *pop;
 int con_count[27][10], gen_limit, restart_limit;
 int con_mask[27];
+int pos[81];
+mt19937_64 mrand;
+#ifdef RAND_MAX
+	#undef RAND_MAX
+	#define RAND_MAX mrand.max()
+	#define rand mrand
+	#define srand(X) mrand.seed(X)
+#endif
 
-int rearrange(int x, int mask) {
-    int c = 0, nc = nvalid[x] - 1;
+bool fire(double p) {
+    return rand() <= p * RAND_MAX;
+}
 
-    for(int d = 1; d <= 9; ++d) {
-        if((valid[x] & (1 << d)) > 0) {
-            if((mask & (1 << d)) == 0) {
-                valid_nums[x][c++] = d;
-            } else {
-                valid_nums[x][nc--] = d;
-            }
-        }
-    }
-
-    return c;
+int randrange(int a, int b) {
+    assert(a <= b);
+    return rand() % (b - a + 1) + a;
 }
 
 int getRandom(int x) {
-    int c;
-    int masks[] = {
-        (con_mask[row(x)] | con_mask[col(x) + 9] | con_mask[box(x) + 18]),
-        (con_mask[row(x)] | con_mask[box(x) + 18]),
-        (con_mask[row(x)] | con_mask[col(x) + 9]),
-        (con_mask[row(x)])};
-    
-    fr(i, 4) {
-        c = rearrange(x, masks[i]);
-        if(c) break;
+    int c = 0, nc = nvalid[x] - 1, mask = (con_mask[row(x)] | con_mask[col(x) + 9] | con_mask[box(x) + 18]);
+    for(int d = 1; d <= 9; ++d) {
+        if((valid[x] & (1 << d)) > 0) {
+            if((mask & (1 << d)) == 0) valid_nums[x][c++] = d;
+            else valid_nums[x][nc--] = d;
+        }
     }
-    if(c == 0) {
-        c = nvalid[x];
-        /*
-        int d;
-        do {
-            d = randrange(1, 9);
-        } while(con_mask[row(x)] & (1 << d));
-        return d;
-        */
-    }
-        
+    if(c == 0) c = nvalid[x];
     return valid_nums[x][randrange(0, c - 1)];
 }
 
@@ -70,30 +127,20 @@ class Genome {
         score = -1;
     }
 
-    bool row_consistent() {
-        fr(i, 81) fr(j, 81) if(i != j && row(i) == row(j) && num[i] == num[j]) return false;
-        return true;
-    }
-
     void single_crossover(Genome g) {
-        int x = randrange(1, 8) * 9;
+        int x = randrange(1, 79);
         fr(i, x) swap(num[i], g.num[i]);
         score = g.score = -1;
     }
 
     void mutate() {
-        int from;
         ini(con_mask, 0);
-        for(int i = 0; i < 81; ++i) {
-            if(col(i) == 0) {
-                from = oo;
-                if(fire(mutation_rate)) {
-                    from = i + randrange(0, 8);
-                    score = -1;
-                }
+        for(int j = 0; j < 81; ++j) {
+            int i = pos[j];
+            if(fire(mutation_rate)) {
+                num[i] = getRandom(i);
+                score = -1;
             }
-            if(i >= from) num[i] = getRandom(i);
-
             con_mask[row(i)] |= (1 << num[i]);
             con_mask[col(i) + 9] |= (1 << num[i]);
             con_mask[box(i) + 18] |= (1 << num[i]);
@@ -102,9 +149,9 @@ class Genome {
 
     void fillrandom() {
         ini(con_mask, 0);
-        for(int i = 0; i < 81; ++i) {
+        for(int j = 0; j < 81; ++j) {
+            int i = pos[j];
             num[i] = getRandom(i);
-            assert(num[i] >= 0);
             con_mask[row(i)] |= (1 << num[i]);
             con_mask[col(i) + 9] |= (1 << num[i]);
             con_mask[box(i) + 18] |= (1 << num[i]);
@@ -116,8 +163,8 @@ class Genome {
         if(score != -1) return score;
         score = 0;
         ini(con_count, 0);
-        for(int i = 0; i < 81; ++i) {
-            assert(num[i] >= 1 && num[i] < 10);
+        for(int j = 0; j < 81; ++j) {
+            int i = pos[j];
             score += con_count[row(i)][num[i]];
             con_count[row(i)][num[i]] += 1;
             score += con_count[col(i) + 9][num[i]];
@@ -163,17 +210,17 @@ void initParams() {
     char var[100];
     int val;
     while(fscanf(in, "%s = %d", var, &val) != EOF) {
-        for(char *c = var; *c; ++c) *c = tolower(*c);
-        if(strcmp(var, "pop_len") == 0) pop_len = val;
-        if(strcmp(var, "pop_retain") == 0) pop_retain = val;
-        if(strcmp(var, "mutation_rate") == 0) mutation_rate = 1.0 * val / 100;;
-        if(strcmp(var, "single_crossover_rate") == 0) single_crossover_rate = 1.0 * val / 100;
-        if(strcmp(var, "seed") == 0) srand(val);
-        if(strcmp(var, "gen_limit") == 0) gen_limit = val;
-        if(strcmp(var, "restart_limit") == 0) restart_limit = val;
-        if(strcmp(var, "display_level") == 0) display_level = val;
-        if(strcmp(var, "print_result") == 0) print_result = val;
-        if(strcmp(var, "fitter_parent") == 0) fitter_parent = 1.0 * val / 100;
+        //for(char *c = var; *c; ++c) *c = tolower(*c);
+        if(strcasecmp(var, "pop_len") == 0) pop_len = val;
+        if(strcasecmp(var, "pop_retain") == 0) pop_retain = val;
+        if(strcasecmp(var, "mutation_rate") == 0) mutation_rate = 1.0 * val / 100;;
+        if(strcasecmp(var, "single_crossover_rate") == 0) single_crossover_rate = 1.0 * val / 100;
+        if(strcasecmp(var, "seed") == 0) srand(val);
+        if(strcasecmp(var, "gen_limit") == 0) gen_limit = val;
+        if(strcasecmp(var, "restart_limit") == 0) restart_limit = val;
+        if(strcasecmp(var, "display_level") == 0) display_level = val;
+        if(strcasecmp(var, "print_result") == 0) print_result = val;
+        if(strcasecmp(var, "fitter_parent") == 0) fitter_parent = 1.0 * val / 100;
         
     }
     
@@ -186,6 +233,30 @@ void initParams() {
     assert(mutation_rate >= 0 && mutation_rate <= 1);
     assert(single_crossover_rate >= 0 && single_crossover_rate <= 1);
     assert(fitter_parent >= 0 && fitter_parent <= 1);
+}
+
+void gen_pos() {
+    //if(randrange(0, 10)) return;
+
+    int order[9], c = 0;
+    for(int i = 0; i < 9; ++i) order[i] = i;
+    random_shuffle(order, order + 9);
+    int type = randrange(0, 0);
+    if(type == 0) {
+        for(int i = 0; i < 9; ++i) {
+            for(int x = 0; x < 81; ++x) if(row(x) == order[i]) pos[c++] = x;
+        }
+    } else if(type == 1) {
+        for(int i = 0; i < 9; ++i) {
+            for(int x = 0; x < 81; ++x) if(col(x) == order[i]) pos[c++] = x;
+        }
+    } else {
+        for(int i = 0; i < 9; ++i) {
+            for(int x = 0; x < 81; ++x) if(box(x) == order[i]) pos[c++] = x;
+        }
+    }
+
+    for(int i = 0; i < 81; ++i) for(int j = 0; j < i; ++j) assert(pos[i] != pos[j]);
 }
 
 void disp_progress() {
@@ -206,10 +277,11 @@ void arrange_min() {
 }
 
 void initGA() {
+    for(int i = 0; i < 81; ++i) pos[i] = i;
+    gen_pos();
     pop = new Genome[pop_len];
     for(int i = 0; i < pop_len; ++i) {
         pop[i].fillrandom();
-        //assert(pop[i].row_consistent());
         if(pop[i].get_score() == 0) {
             swap(pop[i], pop[0]);
             return;
@@ -242,6 +314,7 @@ void outputStats(int solved) {
 
 
 void nextgen() {
+    gen_pos();
     ++gen;
     for(int i = pop_retain; i < pop_len; i += 2) {
         int a = select(), b = select();
@@ -267,7 +340,7 @@ void nextgen() {
 
 char inp[100];
 void processInput() {
-    int full = (1 << 10) - 2;
+    int full = (1 << 10) - 1;
     fr(i, 81) {
         valid[i] = full;
         nvalid[i] = 0;

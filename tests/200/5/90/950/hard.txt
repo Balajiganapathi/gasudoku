@@ -1,8 +1,8 @@
 seed = 200
 solved: 1
-restarts = 13
-gen = 261089
-time = 77030
+restarts = 6
+gen = 120192
+time = 16390
 size = 1000
 retain = 950
 mutation_rate = 0.050000

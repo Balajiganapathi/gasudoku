@@ -2,7 +2,7 @@ seed = 100
 solved: 0
 restarts = 20
 gen = 420000
-time = 181400
+time = 78270
 size = 1000
 retain = 900
 mutation_rate = 0.050000

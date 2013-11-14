@@ -1,7 +1,7 @@
 seed = 200
 solved: 1
 restarts = 0
-gen = 125
+gen = 169
 time = 10
 size = 1000
 retain = 990

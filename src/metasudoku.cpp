@@ -1,5 +1,6 @@
 #include "common.h"
 
+int mgen, mpop_retain = 190, mpop_len = 200;
 double mmutation_rate, msingle_crossover_rate, mfitter_parent;
 mGenome *mpop;
 
@@ -9,6 +10,12 @@ void initMetaParams(int params[])
     pop_retain = params[1];
     mutation_rate = params[2]/1000.0;
     single_crossover_rate = params[3]/1000.0;
+}
+
+int mgetRandom(int x)
+{
+	int c;
+	return c;
 }
 
 class mGenome
@@ -67,11 +74,13 @@ public:
 		score = gen;
 		return score;
 	}
-	bool operator <(const mGenome &g) const {
+	bool operator <(const mGenome &g) const
+	{
 	    assert(score != -1 && g.score != -1);
 	    return score < g.score;
     }
 };
+
 int mselect()
 {
 	int a = randrange(0, pop_len - 1), b;
@@ -93,6 +102,18 @@ void marrange_min()
 			swap(mpop[0], mpop[i]);
 }
 
+void mwrapGA()
+{
+    delete[] mpop;
+}
+
+void mdisp_progress() 
+{
+    printf("I am at gen % 4d with best score % 4d: ", mgen, mpop[0].get_score());
+    fr(i, 4) printf("%d", mpop[0].params[i]);
+    printf("\n");
+}
+
 void minitGA()
 {
 	mpop = new mGenome[pop_len];
@@ -107,12 +128,41 @@ void minitGA()
 	}
 
 	mgen = 0;
-	mnth_element(mpop, mpop + pop_retain, mpop + pop_len);
+	nth_element(mpop, mpop + pop_retain, mpop + pop_len);
     marrange_min();
 	mdisp_progress();
 }
 
-void mwrapGA()
+void mnextgen()
 {
-    delete[] mpop;
+	++mgen;
+	for(int i = mpop_retain; i < mpop_len; i += 2) 
+	{
+		int a = mselect(), b = mselect();
+		while(a == b) b = mselect();
+		mpop[i] = mpop[a]; mpop[i + 1] = mpop[b];
+		if (fire(msingle_crossover_rate)) 
+		{
+			mpop[i].single_crossover(mpop[i + 1]);
+			mpop[i].mutate();
+			mpop[i + 1].mutate();
+		} 
+		else 
+		{
+			mpop[i].fillrandom();
+			mpop[i + 1].fillrandom();
+		}
+
+		mpop[i].get_score();
+		mpop[i + 1].get_score();
+    }
+
+    nth_element(mpop, mpop + mpop_retain, mpop + mpop_len);
+	marrange_min();
+	mdisp_progress();
+}
+
+int metaGA(int argc, char* argv[])
+{
+	return 0;
 }

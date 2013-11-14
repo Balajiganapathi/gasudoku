@@ -33,20 +33,14 @@ typedef pair<int,int> pi;
 typedef vector<string> vs;
 
 // Basic macros
-#define st          first
-#define se          second
-#define all(x)      (x).begin(), (x).end()
 #define ini(a, v)   memset(a, v, sizeof(a))
 #define re(i,s,n)  	for(int i=s;i<(n);++i)
 #define rep(i,s,n)  for(int i=s;i<=(n);++i)
 #define fr(i,n)     re(i,0,n)
 #define tr(i,x)     for(typeof(x.begin()) i=x.begin();i!=x.end();++i)
-#define pu          push_back
-#define mp          make_pair
 #define sz(x)       (int)(x.size())
 
 const int oo = 2000000009;
-const double eps = 1e-9;
 
 #ifdef TRACE
     #define trace1(x)                cerr << #x << ": " << x << endl;
@@ -67,18 +61,25 @@ const double eps = 1e-9;
 
 #endif
 
-int pop_len, pop_retain, gen;
-double mutation_rate, single_crossover_rate, fitter_parent;
+int pop_len;            // The number of genomes in a population
+int pop_retain;         // Elitism. The amount of genomes to retain when building next generation
+int gen;                // The current generation no. Starts form 0
+double mutation_rate;   // The probability of a row being mutated. See mutate function of Genome class for more details. Usually (0.01, 0.2)
+double single_crossover_rate;   // The probability of a crossover being performed between two genomes. See crossover and next_gen code for details
+double fitter_parent;   // The probability of a fitter genome being selected. See select for more details.
 
+// Returns true with probability p
 bool fire(double p) {
     return rand() <= p * RAND_MAX;
 }
 
+// Returns a number choosen uniformly at random between a and b inclusive
 int randrange(int a, int b) {
     assert(a <= b);
     return rand() % (b - a + 1) + a;
 }
 
+// Represents a potential solution to the given input sudoku
 class Genome
 {
     public:
@@ -98,3 +99,5 @@ extern class mGenome;
 void initParams();
 void processInput();
 Genome solve();
+
+int metaGA(int, char* []);

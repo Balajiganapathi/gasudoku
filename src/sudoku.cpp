@@ -3,14 +3,10 @@
 #define col(x) ((x) % 9)
 #define box(x) (3 * (row(x) / 3 ) + (col(x) / 3))
 
-class Genome;
-
 int valid[81], nvalid[81], valid_nums[81][9];
 int input[81];
-int pop_len, pop_retain, gen;
 int restarts, time_taken;
 int display_level, print_result;
-double mutation_rate, single_crossover_rate, fitter_parent;
 Genome *pop;
 int con_count[27][10], gen_limit, restart_limit;
 int con_mask[27];
@@ -61,79 +57,76 @@ bool conflict(int *num, int i, int j) {
     return (i != j) && (num[i] == num[j]) && ((row(i) == row(j)) || (col(i) == col(j)) || (box(i) == box(j)));
 }
 
-class Genome {
-    public:
-    int num[81];
-    int score;
+//class Genome {
 
-    Genome() {
-        score = -1;
-    }
+Genome::Genome() {
+    score = -1;
+}
 
-    bool row_consistent() {
-        fr(i, 81) fr(j, 81) if(i != j && row(i) == row(j) && num[i] == num[j]) return false;
-        return true;
-    }
+bool Genome::row_consistent() {
+    fr(i, 81) fr(j, 81) if(i != j && row(i) == row(j) && num[i] == num[j]) return false;
+    return true;
+}
 
-    void single_crossover(Genome g) {
-        int x = randrange(1, 8) * 9;
-        fr(i, x) swap(num[i], g.num[i]);
-        score = g.score = -1;
-    }
+void Genome::single_crossover(Genome g) {
+    int x = randrange(1, 8) * 9;
+    fr(i, x) swap(num[i], g.num[i]);
+    score = g.score = -1;
+}
 
-    void mutate() {
-        int from;
-        ini(con_mask, 0);
-        for(int i = 0; i < 81; ++i) {
-            if(col(i) == 0) {
-                from = oo;
-                if(fire(mutation_rate)) {
-                    from = i + randrange(0, 8);
-                    score = -1;
-                }
+void Genome::mutate() {
+    int from;
+    ini(con_mask, 0);
+    for(int i = 0; i < 81; ++i) {
+        if(col(i) == 0) {
+            from = oo;
+            if(fire(mutation_rate)) {
+                from = i + randrange(0, 8);
+                score = -1;
             }
-            if(i >= from) num[i] = getRandom(i);
-
-            con_mask[row(i)] |= (1 << num[i]);
-            con_mask[col(i) + 9] |= (1 << num[i]);
-            con_mask[box(i) + 18] |= (1 << num[i]);
         }
+        if(i >= from) num[i] = getRandom(i);
+
+        con_mask[row(i)] |= (1 << num[i]);
+        con_mask[col(i) + 9] |= (1 << num[i]);
+        con_mask[box(i) + 18] |= (1 << num[i]);
+    }
+}
+
+void Genome::fillrandom() {
+    ini(con_mask, 0);
+    for(int i = 0; i < 81; ++i) {
+        num[i] = getRandom(i);
+        assert(num[i] >= 0);
+        con_mask[row(i)] |= (1 << num[i]);
+        con_mask[col(i) + 9] |= (1 << num[i]);
+        con_mask[box(i) + 18] |= (1 << num[i]);
+    }
+    score = -1;
+}
+
+int Genome::get_score() {
+    if(score != -1) return score;
+    score = 0;
+    ini(con_count, 0);
+    for(int i = 0; i < 81; ++i) {
+        assert(num[i] >= 1 && num[i] < 10);
+        score += con_count[row(i)][num[i]];
+        con_count[row(i)][num[i]] += 1;
+        score += con_count[col(i) + 9][num[i]];
+        con_count[col(i) + 9][num[i]] += 1;
+        score += con_count[box(i) + 18][num[i]];
+        con_count[box(i) + 18][num[i]] += 1;
     }
 
-    void fillrandom() {
-        ini(con_mask, 0);
-        for(int i = 0; i < 81; ++i) {
-            num[i] = getRandom(i);
-            assert(num[i] >= 0);
-            con_mask[row(i)] |= (1 << num[i]);
-            con_mask[col(i) + 9] |= (1 << num[i]);
-            con_mask[box(i) + 18] |= (1 << num[i]);
-        }
-        score = -1;
-    }
+    return score;
+}
 
-    int get_score() {
-        if(score != -1) return score;
-        score = 0;
-        ini(con_count, 0);
-        for(int i = 0; i < 81; ++i) {
-            assert(num[i] >= 1 && num[i] < 10);
-            score += con_count[row(i)][num[i]];
-            con_count[row(i)][num[i]] += 1;
-            score += con_count[col(i) + 9][num[i]];
-            con_count[col(i) + 9][num[i]] += 1;
-            score += con_count[box(i) + 18][num[i]];
-            con_count[box(i) + 18][num[i]] += 1;
-        }
-
-        return score;
-    }
-
-    bool operator <(const Genome &g) const {
-        assert(score != -1 && g.score != -1);
-        return score < g.score;
-    }
-};
+bool Genome::operator <(const Genome &g) const {
+    assert(score != -1 && g.score != -1);
+    return score < g.score;
+}
+//};
 
 int select() {
     int a = randrange(0, pop_len - 1), b;

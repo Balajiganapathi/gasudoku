@@ -67,6 +67,9 @@ const double eps = 1e-9;
 
 #endif
 
+int pop_len, pop_retain, gen;
+double mutation_rate, single_crossover_rate, fitter_parent;
+
 bool fire(double p) {
     return rand() <= p * RAND_MAX;
 }
@@ -75,3 +78,23 @@ int randrange(int a, int b) {
     assert(a <= b);
     return rand() % (b - a + 1) + a;
 }
+
+class Genome
+{
+    public:
+    int num[81];
+    int score;
+
+	Genome();
+	bool row_consistent();
+	void single_crossover(Genome g);
+	void mutate();
+	void fillrandom();
+	int get_score();
+	bool operator <(const Genome &g) const;
+};
+extern class mGenome;
+
+void initParams();
+void processInput();
+Genome solve();

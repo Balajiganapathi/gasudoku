@@ -2,9 +2,10 @@
 #include <random>
 class mGenome;
 
-extern int pop_retain, gen;
+extern int pop_retain, gen, gen_limit, restarts;
 
 int mgen;
+int mmin_gen;
 int mpop_retain = 190;
 int mpop_len = 200;
 int mrestarts = 0;
@@ -83,7 +84,8 @@ public:
 		initMetaParams(params);
 		processInput();
 	    solve();
-		score = gen;
+		score = restarts*gen_limit + gen;
+		cout << "gen = " << score << endl;
 		return score;
 	}
 	bool operator <(const mGenome &g) const
@@ -132,7 +134,7 @@ void minitGA()
 	for (int i = 0; i < mpop_len; ++i) 
 	{
 		mpop[i].fillrandom();
-		if (mpop[i].get_score() == 0)
+		if (mpop[i].get_score() < mmin_gen)
 		{
 			swap(mpop[i], mpop[0]);
 			return;
@@ -180,7 +182,7 @@ mGenome msolve()
 	while (mrestarts < mrestart_limit) 
 	{
 		minitGA();
-        while(mpop[0].get_score() && mgen < mgen_limit) 
+        while((mpop[0].get_score() > mmin_gen) && mgen < mgen_limit) 
 		{
             mnextgen();
         }
@@ -194,6 +196,10 @@ mGenome msolve()
 
 int metaGA(int argc, char* argv[])
 {
+	if (argc > 2)
+		mmin_gen = strtol(argv[2], NULL, 10);
+	else
+		mmin_gen = 500;
 	cout << "Starting metaGA." << endl;
 	mrand.seed(strtol(argv[1], NULL, 10));
 	mGenome ans = msolve();

@@ -12,18 +12,68 @@
 #define col(x) ((x) % 9)
 #define box(x) (3 * (row(x) / 3 ) + (col(x) / 3))
 int input[81];          // The input puzzle. Zero represents blank cell other have numbers 1-9.
-int valid[81];          // A bitmask with one at bit b representing that b does not conflict with any of the input numbers
+int valid[81];          // A bitmask with one at bit b representing that b does not 
+						// conflict with any of the input numbers
 int nvalid[81];         // The number of valid digits (the no. of ones in valid[x]
-int valid_nums[81][9];  // The positions valid_nums[x][0] ... valid_nums[x][nvalid[x] - 1] contain all valid numbers
-int restarts;           // The number of restarts
-int time_taken;         // Time taken by the program to solve the sudoku in milliseconds
-int display_level;      // Controls amount of data to display, higher no. means more data is printed. Useful for debugging
-int print_result;       // Controls amount of result being printed to stdout. Higher no.m means more data is printed
-Genome *pop;            // An array of length pop_len with each element containing a genome. This is initialized in init_ga
-int con_count[27][10];  // Keeps a count of the number of times a particular number appears in the given region. The region mapping is same as that of con_mask
+int valid_nums[81][9];  // The positions valid_nums[x][0] ... valid_nums[x][nvalid[x] - 1] 
+						// contain all valid numbers
+int pop_retain;         // Elitism. The amount of genomes to retain when building next generation
+int gen;                // The current generation no. Starts form 0
 int gen_limit;          // Number of times a new generation is created before a restart is done
+int restarts;           // The number of restarts
 int restart_limit;      // The number of times restart happens before the program gives up
-int con_mask[27];       // Conflict mask. Similar to valid[x], but accumulates all masks for a particular region. 0-8 -> rows 0 to 8, 9-17 -> col 0 to 8, 18-26 -> box 0 to 8. Used for better selection of a random number to fill a particular cell.
+int time_taken;         // Time taken by the program to solve the sudoku in milliseconds
+double mutation_rate;   // The probability of a row being mutated. See mutate function 
+						// of Genome class for more details. Usually (0.01, 0.2)
+double single_crossover_rate;   // The probability of a crossover being performed between 
+						// two genomes. See crossover and next_gen code for details
+double fitter_parent;   // The probability of a fitter genome being selected. 
+						// See select for more details.
+int display_level;      // Controls amount of data to display, higher no. means more data 
+						// is printed. Useful for debugging
+int print_result;       // Controls amount of result being printed to stdout. 
+						// Higher no.m means more data is printed
+int pop_len;            // The number of genomes in a population
+Genome *pop;            // An array of length pop_len with each element containing a genome. 
+						// This is initialized in init_ga
+int con_count[27][10];  // Keeps a count of the number of times a particular number appears 
+						// in the given region. The region mapping is same as that of con_mask
+int con_mask[27];       // Conflict mask. Similar to valid[x], but accumulates all masks for a 
+						// particular region. 0-8 -> rows 0 to 8, 9-17 -> col 0 to 8, 
+						// 18-26 -> box 0 to 8. Used for better selection of a random number 
+						// to fill a particular cell.
+
+bool run_once = true;
+
+void initMetaParams(int params[])
+{
+	for (int i = 0; i < 4; i++) 
+		cout << params[i] << " ";
+	cout << endl;
+	srand(params[0]);
+    pop_retain            = params[1];
+    mutation_rate         = params[2]/1000.0;
+    single_crossover_rate = params[3]/1000.0;
+    gen                   = 0;
+    restarts              = 0;
+	memset(con_count, 0, 27*10*sizeof(int));
+	memset(con_mask, 0, 27*sizeof(int));
+	memset(input, 0, 81*sizeof(int));
+	memset(valid, 0, 81*sizeof(int));
+	memset(nvalid, 0, 81*sizeof(int));
+
+}
+
+// Returns true with probability p
+bool fire(double p) {
+    return rand() <= p * RAND_MAX;
+}
+
+// Returns a number choosen uniformly at random between a and b inclusive
+int randrange(int a, int b) {
+    assert(a <= b);
+    return rand() % (b - a + 1) + a;
+}
 
 // Optimization hack
 // Rearranges the numbers in valid_nums such that the numbers whose bit 
@@ -268,7 +318,11 @@ void arrange_min() {
 // 3. Prepare for creating next generation by retaining the top 
 // pop_retain genomes from current generation
 void initGA() {
-    pop = new Genome[pop_len];
+	if (run_once)
+	{	
+		pop = new Genome[pop_len]();
+		run_once = false;
+	}
     for(int i = 0; i < pop_len; ++i) {
         pop[i].fillrandom();
         //assert(pop[i].row_consistent());
@@ -287,7 +341,9 @@ void initGA() {
 // Called after running GA
 // Deallocates all allocated storage
 void wrapGA() {
-    delete []pop;
+	if (pop)
+		delete []pop;
+	pop = NULL;
 }
 
 // Output the statistice of this run
@@ -384,7 +440,7 @@ Genome solve() {
             nextgen();
         }
         res = pop[0];
-        wrapGA();
+      
         if(res.get_score() == 0) break;
         ++restarts;
     }
@@ -392,11 +448,11 @@ Genome solve() {
 }
 
 int main(int argc, char* argv[]) {
+    scanf("%s", inp);
 	if (argc > 1)
 		return metaGA(argc, argv);
 
     initParams();
-    scanf("%s", inp);
     processInput();
 	
 	// Keep track of the time. Stores the return of clock in tstart.

@@ -1,21 +1,33 @@
 #include "common.h"
+#include <random>
+class mGenome;
 
-int mgen, mpop_retain = 190, mpop_len = 200;
-double mmutation_rate, msingle_crossover_rate, mfitter_parent;
+extern int pop_retain, gen;
+
+int mgen;
+int mpop_retain = 190;
+int mpop_len = 200;
+int mrestarts = 0;
+int mrestart_limit = 10;
+int mgen_limit = 2000;
+double mmutation_rate         = 0.9;
+double msingle_crossover_rate = 0.9;
+double mfitter_parent = 99;
 mGenome *mpop;
-
-void initMetaParams(int params[])
-{
-	srand(params[0]);
-    pop_retain = params[1];
-    mutation_rate = params[2]/1000.0;
-    single_crossover_rate = params[3]/1000.0;
-}
+mt19937_64 mrand;
 
 int mgetRandom(int x)
 {
-	int c;
-	return c;
+	switch(x)
+	{
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+			return mrand() % 900 + 100;
+		default:
+			return -1;
+	}
 }
 
 class mGenome
@@ -83,13 +95,13 @@ public:
 
 int mselect()
 {
-	int a = randrange(0, pop_len - 1), b;
+	int a = randrange(0, mpop_len - 1), b;
 	b     = a;
 	while (b == a)
-		b = randrange(0, pop_len - 1);
+		b = randrange(0, mpop_len - 1);
 	if (mpop[a].get_score() > mpop[b].get_score()) 
 		swap(a, b);
-	if(fire(fitter_parent)) 
+	if(fire(mfitter_parent)) 
 		return a;
 	else 
 		return b;
@@ -97,7 +109,7 @@ int mselect()
 
 void marrange_min()
 {
-	for (int i = 0; i < pop_len; ++i)
+	for (int i = 0; i < mpop_len; ++i)
 		if (mpop[0].get_score() > mpop[i].get_score())
 			swap(mpop[0], mpop[i]);
 }
@@ -116,8 +128,8 @@ void mdisp_progress()
 
 void minitGA()
 {
-	mpop = new mGenome[pop_len];
-	for (int i = 0; i < pop_len; ++i) 
+	mpop = new mGenome[mpop_len];
+	for (int i = 0; i < mpop_len; ++i) 
 	{
 		mpop[i].fillrandom();
 		if (mpop[i].get_score() == 0)
@@ -128,7 +140,7 @@ void minitGA()
 	}
 
 	mgen = 0;
-	nth_element(mpop, mpop + pop_retain, mpop + pop_len);
+	nth_element(mpop, mpop + mpop_retain, mpop + mpop_len);
     marrange_min();
 	mdisp_progress();
 }
@@ -162,7 +174,33 @@ void mnextgen()
 	mdisp_progress();
 }
 
+mGenome msolve()
+{
+	mGenome res;
+	while (mrestarts < mrestart_limit) 
+	{
+		minitGA();
+        while(mpop[0].get_score() && mgen < mgen_limit) 
+		{
+            mnextgen();
+        }
+        res = mpop[0];
+        mwrapGA();
+        if(res.get_score() == 0) break;
+        ++mrestarts;
+	}
+	return res;
+}
+
 int metaGA(int argc, char* argv[])
 {
+	cout << "Starting metaGA." << endl;
+	mrand.seed(strtol(argv[1], NULL, 10));
+	mGenome ans = msolve();
+	cerr << "gen = " << ans.get_score() << endl;
+	cerr << "seed = " << ans.params[0] << endl;
+	cerr << "pop_retain = " << ans.params[1] << endl;
+	cerr << "mutation_rate = " << ans.params[2] << endl;
+	cerr << "single_crossover_rate = " << ans.params[3] << endl;
 	return 0;
 }

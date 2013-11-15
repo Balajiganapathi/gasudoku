@@ -1,21 +1,26 @@
 CXX=g++
-CFLAGS= -O3 -march=native --std=c++11
+CFLAGS= -O3 -march=native --std=c++11 -I src -ggdb
 SRCDIR=src
 BINDIR=bin
+OBJDIR=obj
 BIN=$(BINDIR)/sudoku
-BIN11=$(BINDIR)/sudoku11
+SRC=$(SRCDIR)/sudoku.cpp $(SRCDIR)/metasudoku.cpp
+OBJ=$(OBJDIR)/sudoku.o $(OBJDIR)/metasudoku.o
 
-all: test sudoku
+all: sudoku
 
 test: sudoku 
 	./test.sh
 
 sudoku: $(BIN)
 
-$(BIN): $(SRCDIR)/sudoku.cpp $(SRCDIR)/common.h
-	$(CXX) $(CFLAGS) $< -o $(BIN)
+$(BIN): $(OBJ)
+	$(CXX) $^ -o $(BIN)
+
+$(OBJDIR)/%.o : $(SRCDIR)/%.cpp
+	$(CXX) $(CFLAGS) -c $^ -o $@
 
 .PHONY: clean
 
 clean:
-	rm -f $(BIN) $(BIN11)
+	rm -f $(BIN) $(OBJ)

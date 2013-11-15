@@ -1,3 +1,5 @@
+#ifndef __COMMON_H
+#define __COMMON_H
 #define TRACE
 #define DEBUG
 
@@ -61,24 +63,6 @@ const int oo = 2000000009;
 
 #endif
 
-int pop_len;            // The number of genomes in a population
-int pop_retain;         // Elitism. The amount of genomes to retain when building next generation
-int gen;                // The current generation no. Starts form 0
-double mutation_rate;   // The probability of a row being mutated. See mutate function of Genome class for more details. Usually (0.01, 0.2)
-double single_crossover_rate;   // The probability of a crossover being performed between two genomes. See crossover and next_gen code for details
-double fitter_parent;   // The probability of a fitter genome being selected. See select for more details.
-
-// Returns true with probability p
-bool fire(double p) {
-    return rand() <= p * RAND_MAX;
-}
-
-// Returns a number choosen uniformly at random between a and b inclusive
-int randrange(int a, int b) {
-    assert(a <= b);
-    return rand() % (b - a + 1) + a;
-}
-
 // Represents a potential solution to the given input sudoku
 class Genome
 {
@@ -94,10 +78,13 @@ class Genome
 	int get_score();
 	bool operator <(const Genome &g) const;
 };
-extern class mGenome;
 
+bool fire(double);
+int randrange(int , int );
 void initParams();
 void processInput();
 Genome solve();
 
 int metaGA(int, char* []);
+void initMetaParams(int []);
+#endif

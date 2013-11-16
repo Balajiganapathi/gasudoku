@@ -26,6 +26,9 @@
 #include <stack>
 #include <utility>
 #include <vector>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 using namespace std;
 
@@ -86,5 +89,5 @@ void processInput();
 Genome solve();
 
 int metaGA(int, char* []);
-void initMetaParams(int []);
+void initMetaParams(int [], int, int seed = 0);
 #endif

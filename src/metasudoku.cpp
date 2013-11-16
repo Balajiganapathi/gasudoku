@@ -1,27 +1,41 @@
 #include "common.h"
+#include <fstream>
 #include <random>
 class mGenome;
 
-extern int pop_retain, gen, gen_limit, restarts;
+extern int pop_retain, gen, gen_limit, restarts, display_level;
 
 int mgen;
 int mmin_gen;
-int mpop_retain = 190;
-int mpop_len = 200;
+int mpop_len = 20;
+int mpop_retain = mpop_len * 0.25;
 int mrestarts = 0;
 int mrestart_limit = 10;
 int mgen_limit = 2000;
 double mmutation_rate         = 0.9;
 double msingle_crossover_rate = 0.9;
-double mfitter_parent = 99;
+double mfitter_parent = 0.25;
 mGenome *mpop;
 mt19937_64 mrand;
+char cases[100][100];
+double weights[4] = {1,0.25,0.5,1};
+FILE* flog;
+
+void fork_handler(int params[], int i)
+{
+	initMetaParams(params, i, 0);
+	processInput();
+	solve();
+	exit(weights[i]*(restarts*gen_limit + gen));
+}
+
 
 int mgetRandom(int x)
 {
 	switch(x)
 	{
 		case 0:
+			return mrand() % 25 + 75;
 		case 1:
 		case 2:
 		case 3:
@@ -44,7 +58,7 @@ public:
 
 	void single_crossover(mGenome &g)
 	{
-		int x = randrange(1, 3) * 4;
+		int x = randrange(0, 3);
 		fr (i, x) swap(params[i], g.params[i]);
 		score= g.score = -1;
 	}
@@ -80,11 +94,19 @@ public:
 	int get_score()
 	{
 		if (score != -1) return score;
+		score = 0;
 		initParams();
-		initMetaParams(params);
-		processInput();
-	    solve();
-		score = restarts*gen_limit + gen;
+		int children[4];
+		for (int i = 0; i < 4; i++)
+		{
+			if ((children[i] = fork()) == 0)
+				fork_handler(params, i);
+		}
+		for (int i = 0; i < 4; i++)
+		{
+			wait(children + i);
+			score += children[i];
+		}
 		cout << "gen = " << score << endl;
 		return score;
 	}
@@ -123,14 +145,24 @@ void mwrapGA()
 
 void mdisp_progress() 
 {
+
+	fprintf(flog, "%d %d", mgen, mpop[0].get_score());
+	for (int i = 0; i < 4; i++)
+		fprintf(flog, " %d", mpop[0].params[i]);
+	fprintf(flog, "\n");
+	if(display_level <= 0) return;
+    if(display_level <= 1) {
+        if(mgen == 0) printf("mRESTART: %d\n", mrestarts);
+        return;
+    }
+
     printf("I am at gen % 4d with best score % 4d: ", mgen, mpop[0].get_score());
-    fr(i, 4) printf("%d", mpop[0].params[i]);
+    fr(i, 4) printf("%d ", mpop[0].params[i]);
     printf("\n");
 }
 
 void minitGA()
 {
-	mpop = new mGenome[mpop_len];
 	for (int i = 0; i < mpop_len; ++i) 
 	{
 		mpop[i].fillrandom();
@@ -179,6 +211,7 @@ void mnextgen()
 mGenome msolve()
 {
 	mGenome res;
+	mpop = new mGenome[mpop_len];
 	while (mrestarts < mrestart_limit) 
 	{
 		minitGA();
@@ -187,9 +220,10 @@ mGenome msolve()
             mnextgen();
         }
         res = mpop[0];
-        mwrapGA();
-        if(res.get_score() == 0) break;
-        ++mrestarts;
+        if(res.get_score() < mmin_gen) 
+			break;
+        //mwrapGA();
+	    ++mrestarts;
 	}
 	return res;
 }
@@ -200,13 +234,21 @@ int metaGA(int argc, char* argv[])
 		mmin_gen = strtol(argv[2], NULL, 10);
 	else
 		mmin_gen = 500;
+	int i       = 0;
+	FILE *input = fopen("all_cases.txt", "r");
+	while(fscanf(input, "%s", cases[i++]) != EOF)
+		;
+	fclose(input);
+	flog  = fopen("meta.log","w");
 	cout << "Starting metaGA." << endl;
+	
 	mrand.seed(strtol(argv[1], NULL, 10));
 	mGenome ans = msolve();
-	cerr << "gen = " << ans.get_score() << endl;
-	cerr << "seed = " << ans.params[0] << endl;
-	cerr << "pop_retain = " << ans.params[1] << endl;
-	cerr << "mutation_rate = " << ans.params[2] << endl;
+	cerr << "gen = " << ans.get_score() << '\n';
+	cerr << "fitter_parent = " << ans.params[0] << '\n';
+	cerr << "pop_retain = " << ans.params[1] << '\n';
+	cerr << "mutation_rate = " << ans.params[2] << '\n';
 	cerr << "single_crossover_rate = " << ans.params[3] << endl;
+	fclose(flog);
 	return 0;
 }

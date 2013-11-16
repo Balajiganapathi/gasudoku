@@ -43,24 +43,30 @@ int con_mask[27];       // Conflict mask. Similar to valid[x], but accumulates a
 						// 18-26 -> box 0 to 8. Used for better selection of a random number 
 						// to fill a particular cell.
 
-bool run_once = true;
+char inp[100];// The input puzzle in string form
 
-void initMetaParams(int params[])
+bool run_once = true;
+extern char cases[100][100];
+
+void initMetaParams(int params[], int i, int seed)
 {
-	for (int i = 0; i < 4; i++) 
-		cout << params[i] << " ";
-	cout << endl;
-	srand(params[0]);
+//	for (int i = 0; i < 4; i++) 
+//		cout << params[i] << " ";
+//	cout << endl;
+	fitter_parent		  = params[0]/100.0;
     pop_retain            = params[1];
     mutation_rate         = params[2]/1000.0;
     single_crossover_rate = params[3]/1000.0;
     gen                   = 0;
     restarts              = 0;
+	//if (seed)
+	//	srand(seed);
 	memset(con_count, 0, 27*10*sizeof(int));
 	memset(con_mask, 0, 27*sizeof(int));
 	memset(input, 0, 81*sizeof(int));
 	memset(valid, 0, 81*sizeof(int));
 	memset(nvalid, 0, 81*sizeof(int));
+	strncpy(inp, cases[i], 100);
 
 }
 
@@ -247,6 +253,10 @@ int select() {
 // file *MUST* follow ecactly this syntax:
 // <variable> = <value>
 void initParams() {
+	if (!run_once)
+		return;
+	else
+		run_once = false;
     pop_len = 1000;
     pop_retain = 900;
     mutation_rate = .1;
@@ -302,7 +312,7 @@ void disp_progress() {
         return;
     }
     printf("I am at gen % 4d with best score % 4d: ", gen, pop[0].get_score());
-    fr(i, 81) printf("%d", pop[0].num[i]);
+    fr(i, 81) printf("%d ", pop[0].num[i]);
     printf("\n");
     
 }
@@ -321,7 +331,6 @@ void initGA() {
 	if (run_once)
 	{	
 		pop = new Genome[pop_len]();
-		run_once = false;
 	}
     for(int i = 0; i < pop_len; ++i) {
         pop[i].fillrandom();
@@ -392,8 +401,6 @@ void nextgen() {
     disp_progress();
 }
 
-char inp[100];// The input puzzle in string form
-
 // Preprocesses the input for easy usage. It takes a line of puzzle from 
 // stdin, converts them into integers and stores them in input[].
 // Then for each cell, it calculates all possible digits that can appear 
@@ -440,7 +447,8 @@ Genome solve() {
             nextgen();
         }
         res = pop[0];
-      
+	//	wrapGA();
+		
         if(res.get_score() == 0) break;
         ++restarts;
     }

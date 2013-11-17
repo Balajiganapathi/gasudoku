@@ -67,7 +67,10 @@ void initMetaParams(int params[], int i, int seed)
 	memset(valid, 0, 81*sizeof(int));
 	memset(nvalid, 0, 81*sizeof(int));
 	strncpy(inp, cases[i], 100);
+	run_once = true;
 
+	processInput();
+	solve();
 }
 
 // Returns true with probability p
@@ -132,7 +135,7 @@ int getRandom(int x) {
     return valid_nums[x][randrange(0, c - 1)];
 }
 
-// returns true if cell i and cell j are different and in teh same region
+// returns true if cell i and cell j are different and in the same region
 bool conflict(int *num, int i, int j) {
     return (i != j) && (num[i] == num[j]) && ((row(i) == row(j)) || (col(i) == col(j)) || (box(i) == box(j)));
 }
@@ -141,6 +144,7 @@ bool conflict(int *num, int i, int j) {
 
 Genome::Genome() {
     score = -1; // Make cache dirty
+	memset(num, 0, sizeof(int)*81);
 }
 
 // Returns true if all rows of the solutions are valid.	
@@ -237,8 +241,8 @@ bool Genome::operator <(const Genome &g) const {
 // Select two random genome, with probability fitter_parent return 
 // the fitter of the two individual.
 int select() {
-    int a = randrange(0, pop_len - 1), b;
-    b = a;
+    int a = randrange(0, pop_len - 1);
+    int b = a;
     while(b == a) {
         b = randrange(0, pop_len - 1);
     }
@@ -253,10 +257,10 @@ int select() {
 // file *MUST* follow ecactly this syntax:
 // <variable> = <value>
 void initParams() {
-	if (!run_once)
-		return;
-	else
-		run_once = false;
+//	if (!run_once)
+//		return;
+//	else
+//		run_once = false;
     pop_len = 1000;
     pop_retain = 900;
     mutation_rate = .1;
@@ -319,7 +323,7 @@ void disp_progress() {
 
 // Make sure pop[0] is the best genome.
 void arrange_min() {
-    for(int i = 0; i < pop_len; ++i) if(pop[0].get_score() > pop[i].get_score()) swap(pop[0], pop[i]);
+    for(int i = 0; i < pop_retain; ++i) if(pop[0].get_score() > pop[i].get_score()) swap(pop[0], pop[i]);
 }
 
 // Prepares things for starting the GA
@@ -331,6 +335,7 @@ void initGA() {
 	if (run_once)
 	{	
 		pop = new Genome[pop_len]();
+		run_once = false;
 	}
     for(int i = 0; i < pop_len; ++i) {
         pop[i].fillrandom();
@@ -351,7 +356,7 @@ void initGA() {
 // Deallocates all allocated storage
 void wrapGA() {
 	if (pop)
-		delete []pop;
+		delete[] pop;
 	pop = NULL;
 }
 
@@ -447,19 +452,19 @@ Genome solve() {
             nextgen();
         }
         res = pop[0];
-	//	wrapGA();
 		
         if(res.get_score() == 0) break;
         ++restarts;
     }
+	wrapGA();
     return res;
 }
 
 int main(int argc, char* argv[]) {
-    scanf("%s", inp);
 	if (argc > 1)
 		return metaGA(argc, argv);
 
+    scanf("%s", inp);
     initParams();
     processInput();
 	

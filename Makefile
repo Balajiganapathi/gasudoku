@@ -1,5 +1,6 @@
 CXX=g++
-CFLAGS= -O3 -march=native --std=c++11 -I src -ggdb
+CFLAGS= -O3 --std=c++11 -I src -ggdb -pthread
+LFLAGS= -pthread
 SRCDIR=src
 BINDIR=bin
 OBJDIR=obj
@@ -15,7 +16,7 @@ test: sudoku
 sudoku: $(BIN)
 
 $(BIN): $(OBJ)
-	$(CXX) $^ -o $(BIN)
+	$(CXX) $(LFLAGS) $^ -o $(BIN)
 
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 	$(CXX) $(CFLAGS) -c $^ -o $@

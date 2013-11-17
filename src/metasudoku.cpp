@@ -1,6 +1,7 @@
 #include "common.h"
 #include <random>
 #include <pthread.h>
+#include <sys/stat.h>
 
 class mGenome;
 
@@ -19,16 +20,18 @@ double mfitter_parent = 0.25;
 mGenome *mpop;
 mt19937_64 mrand;
 char cases[100][100];
-double weights[4] = {1,0.25,0.5,1};
-FILE* flog;
+double weights[4] = {0.3,0.2,0.1,0.4};
+bool isdaemon = false;
+FILE *flog, *reqfile;
 
 int fork_handler(int params[], int i, int seed = 0)
 {
-	fclose(flog);
-	fclose(stderr);
-	initMetaParams(params, i, seed);
+		fclose(flog);
+		fclose(stderr);
+		initMetaParams(params, i, seed);
+	
+		return (int(weights[i]*(restarts*gen_limit + gen)));
 
-	return (int(weights[i]*(restarts*gen_limit + gen)));
 }
 
 int mgetRandom(int x)
@@ -107,7 +110,6 @@ public:
 			waitpid(children[0][i], &children[1][i], 0);
 			score += children[1][i];
 		}
-		score /= 4;
 		cout << "gen = " << score << endl;
 		return score;
 	}
@@ -121,7 +123,32 @@ public:
 void * thread_handler(void * genome)
 {
 	mGenome *g = (mGenome *) genome;
-	g->get_score();
+	if (!isdaemon)
+	{
+		g->get_score();
+	}
+	else
+	{
+		int score = mrand();
+		char *fifo_name = tempnam("~/devel/gasudoku", NULL);
+		while (!mkfifo(fifo_name, 0775))
+			;
+		FILE *fifo      = fopen(fifo_name, "r");
+		fprintf(reqfile, "%s %d %d %d %d %d\n", 
+				fifo_name, 
+				score,
+				g->params[0],
+				g->params[1],
+				g->params[2],
+				g->params[3]);
+		for (int i = 0; i < 4; i++)
+		{
+			fscanf(fifo, "%d", &score);
+			g->score += weights[i]*score;
+		}
+		fclose(fifo);
+		remove(fifo_name);
+	}
 	return NULL;
 }
 
@@ -192,7 +219,7 @@ void minitGA()
 			return;
 		}
 	}
-
+	
 	nth_element(mpop, mpop + mpop_retain, mpop + mpop_len);
     marrange_min();
 	mdisp_progress();
@@ -201,6 +228,7 @@ void minitGA()
 
 void mnextgen()
 {
+	pthread_t tid, tids[mpop_len];
 	++mgen;
 	for(int i = mpop_retain; i < mpop_len; i += 2) 
 	{
@@ -219,10 +247,17 @@ void mnextgen()
 			mpop[i].fillrandom();
 			mpop[i + 1].fillrandom();
 		}
-
-		mpop[i].get_score();
-		mpop[i + 1].get_score();
+		
+		while(pthread_create(tids + i, NULL, thread_handler, &mpop[i]) != 0)
+			;
+		//mpop[i].get_score();
+		while(pthread_create(tids + i + 1, NULL, thread_handler, &mpop[i + 1]) != 0)
+			;
+		//mpop[i + 1].get_score();
     }
+
+	for (int i = mpop_retain; i < mpop_len; i++)
+		pthread_join(tids[i], NULL);
 
     nth_element(mpop, mpop + mpop_retain, mpop + mpop_len);
 	marrange_min();
@@ -263,6 +298,10 @@ int metaGA(int argc, char* argv[])
 	while(fscanf(input, "%s", cases[i++]) != EOF)
 		;
 	fclose(input);
+	if (argc == 4)
+	{
+		mpop_len = strtol(argv[3], NULL, 10);
+	}
 	initParams();
 	flog  = fopen("meta.log","w");
 	cout << "Starting metaGA." << endl;

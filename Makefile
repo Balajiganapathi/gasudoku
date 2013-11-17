@@ -1,6 +1,6 @@
 CXX=g++
 CFLAGS= -O3 --std=c++11 -I src -ggdb -pthread
-LFLAGS= -pthread
+LFLAGS= -pthread -static -static-libstdc++
 SRCDIR=src
 BINDIR=bin
 OBJDIR=obj

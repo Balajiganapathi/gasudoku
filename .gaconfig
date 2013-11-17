@@ -4,6 +4,6 @@ pop_retain = 900
 fitter_parent = 99
 gen_limit = 20000
 print_result = 3
-display_level = 1
+display_level = 0
 restart_limit = 5
 seed = 100

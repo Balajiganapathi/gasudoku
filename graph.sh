@@ -6,20 +6,24 @@ function INT_cleanup()
 
 trap INT_cleanup INT
 
-NGEN=0
 gnu_script()
 {
 	cat <<EOF
 	set term eps
 	set output "gen-plot.eps"
-	plot 'meta.log' using 0:1 title "$@"
+	plot 'meta.log' using 1:2 title "Gen #$@"
 EOF
 }
-bin/sudoku $RANDOM 100 < cases/evil.txt | tee mf.log &
-while inotifywait -e close_write meta.log
+
+NGEN=0
+make
+bin/sudoku $RANDOM 500 | tee mf.log &
+sleep 5
+
+while inotifywait -e modify meta.log
 do
-	NGEN=`cat meta.log | wc -l`
-	echo $NGEN
+	NPOP=`grep -wc gen mf.log`
+	echo Total no. of trials so far: $NGEN
 	gnu_script $NGEN | gnuplot
 	if [[ `jobs -pr | wc -l` == 0 ]]
 	then
